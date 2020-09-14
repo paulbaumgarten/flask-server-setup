@@ -93,7 +93,7 @@ After=network.target
 
 [Service]
 User={userid}
-Group=www-date
+Group=www-data
 WorkingDirectory={folder}
 Environment="PATH={folder}/venv/bin"
 ExecStart={folder}/venv/bin/uwsgi --ini project.ini
@@ -111,7 +111,7 @@ server {{
 	server_name {domain};
 	location / {{
 		include uwsgi_params;
-		uwsgi_pass unix:{folder}/project.sock;
+		uwsgi_pass unix:/tmp/{projectid}.sock;
 		access_log on;
 		error_log on;
 	}}
@@ -125,7 +125,7 @@ server {{
 module = wsgi:app
 master = true
 processes = 5
-socket = project.sock
+socket = /tmp/{projectid}.sock
 chmod-socket = 660
 vacuum = true
 die-on-term = true
@@ -185,7 +185,7 @@ die-on-term = true
     # deactivate
     print("\n\nvenv: deactivating virtual envionment...")
     commands.append("deactivate")
-    subprocess.run(';'.join(commands), shell=True)
+    subprocess.Popen(';'.join(commands), shell=True, executable='/bin/bash')
     time.sleep(5)
 
     # **** WSGI ****
@@ -195,7 +195,7 @@ die-on-term = true
     if not os.path.exists(target):
         print(f"\n\nwsgi: creating {target}...")
         with open(target, "w") as f:
-            f.write(wsgi_py)
+            f.write(app_py)
     else:
         print(f"\n\nwsgi: already exists {target}...")
     time.sleep(5)
@@ -217,6 +217,9 @@ die-on-term = true
     print(f"\n\nsystemd: creating {target}...")
     with open(target, "w") as f:
         f.write(project_service)
+    
+    # changing file ownerships
+    response = subprocess.run(["chown", "pbaumgarten.pbaumgarten", "-R", "."])
 
     # execute systemctl enable <project>
     print(f"\n\nsystemd: enabling and starting {projectid}...")
@@ -228,14 +231,14 @@ die-on-term = true
         f"systemctl start {projectid}", 
         f"systemctl status {projectid}" 
         ]
-    subprocess.run(';'.join(commands), shell=True)
+    subprocess.Popen(';'.join(commands), shell=True, executable='/bin/bash')
     time.sleep(5)
 
     # **** NGINX ****
     target = f"/etc/nginx/sites-available/{projectid}"
     print(f"\n\nnginx: creating {target}...")
     with open(target, "w") as f:
-        f.write(project_service)
+        f.write(nginx_conf)
 
     # ln -s /etc/nginx/sites-available/myproject /etc/nginx/sites-enabled
     print("\n\nnginx: linking sites-available to sites-enabled")
@@ -249,7 +252,7 @@ die-on-term = true
 
     # systemctl restart nginx
     print("\n\nnginx: restarting nginx")
-    response = subprocess.run(["systemctl", "restarts", "nginx"])
+    response = subprocess.run(["systemctl", "restart", "nginx"])
     time.sleep(5)
 
     # **** LETS ENCRYPT ****
