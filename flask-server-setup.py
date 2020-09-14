@@ -3,11 +3,8 @@ A script to automate the setup of a Python3 Flask webserver on an Debian + Nginx
 
 Will perform the following tasks:
 
-SYSTEM USER
- * Create a dedicated system user to own the files for this project
-
 FOLDERS + FILES
- * Will create a dedicated project folder
+ * Will create a dedicated project folder at /home/<user>/<project>
  * Will create a uwsgi.py file
  * Will create a placeholder app.py if one does not already exist
 
@@ -17,7 +14,7 @@ VIRTUALENV
 
 UWSGI
  * Create a project.ini
- * /home/<project>/<project>/<project>.ini
+ * /home/<user>/<project>/<project>.ini
 
 SYSTEMD
  * Set the uwsgi application as a system service to start on boot
@@ -32,13 +29,18 @@ LETSENCRYPT
 
 """
 
+import os
+
 def get_project_information():
     print("~~~ FLASK SERVER SETUP ~~~")
     
+    print("\n\nExisting user that should own all the project files")
+    print("(to create a user, the name for the uwsgi ini and socket files")
+    user = input("User to own the project files:")
+
     print("\n\nYour project identifier should be an alphanumeric name for your project.")
     print("It will be used for:
-    print(" * the username created on the system")
-    print(" * the project folder name")
+    print(" * the project folder name, eg /home/<user>/<project>")
     print(" * the name for the uwsgi ini and socket files")
     project_id = input("Project identifier:")
 
@@ -51,19 +53,57 @@ def get_project_information():
 def is_root():
     return os.geteuid() == 0
 
-def do_user():
-    pass
-
 def do_folders_and_files():
+    # create /home/<user>/<project>
     pass
 
 def do_virtualenv():
+    # pip3 install virtualenv
+    # virtualenv projectenv
+    # source projectenv/bin/activate
+    # pip3 install uwsgi flask
+    # pip3 install -r requirements.txt
+    # deactivate
     pass
 
 def do_uwsgi():
-    pass
+    # wsgi.py
+    content = f"""
+from main import app
+if __name__ == "__main__":
+   app.run()
+"""
+    # project.ini
+    content = f"""[uwsgi]
+module = wsgi:app
+master = true
+processes = 5
+socket = project.sock
+chmod-socket = 666
+vacuum = true
+die-on-term = true
+"""
 
 def do_systemd():
+    # /etc/systemd/system/<project>.service
+    # systemctl enable <project>
+    # systemctl start <project>
+    content = f"""
+[Unit]
+Description=My great flask project
+After=network.target
+
+[Service]
+User=userid
+Group=groupid
+WorkingDirectory=</path/to/project>
+Environment="PATH=</path/to/project>/projectenv/bin"
+Environment="CLIENT_SECRETS=/folder/folder/client_secrets.json"
+ExecStart=</path/to/project>/projectenv/bin/uwsgi --ini project.ini
+
+[Install]
+WantedBy=multi-user.target
+"""
     pass
 
 def do_nginx():
@@ -77,3 +117,11 @@ if __name__=="__main__":
         print("Requires root privileges. Exiting...")
         exit()
     info = get_project_information()
+
+
+"""
+Resources during writing this:
+
+https://janakiev.com/blog/python-shell-commands/
+"""
+
