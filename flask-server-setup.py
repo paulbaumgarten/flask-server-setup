@@ -36,16 +36,25 @@ import time
 def get_project_information():
     print("~~~ FLASK SERVER SETUP ~~~")
     
-    print("\n\nYour project identifier should be an alphanumeric name for your project.")
-    print("It will be used for:")
-    print(" * the project folder name, eg /home/<user>/<project>")
-    print(" * the name for the uwsgi ini and socket files")
-    projectid = input("Project identifier:")
+    confirm = "n"
+    while confirm != "y":
+        print("\n\nYour project identifier should be an alphanumeric name for your project.")
+        print("It will be used for:")
+        print(" * the project folder name, eg /home/<user>/<project>")
+        print(" * the name for the uwsgi ini and socket files")
+        projectid = input("Project identifier: ")
 
-    print("\n\nWhat is the web domain name your project will be accessible from?")
-    print("Note: Please setup your domain name to point to this server before proceeding")
-    print("eg: myproject.mydomain.com")
-    domain = input("Domain name: ")
+        print("\n\nWhat is the web domain name your project will be accessible from?")
+        print("Note: Please setup your domain name to point to this server before proceeding")
+        print("eg: myproject.mydomain.com")
+        domain = input("Domain name: ")
+
+        print("\n\nAbout to create project as follows...")
+        print(f"Identifier: {projectid}")
+        print(f"Home:       {os.path.join(os.path.expanduser('~'), projectid)}")
+        print(f"Domain:     {domain}")
+        confirm = input("\nConfirm 'y' to continue: ")
+
     return projectid, domain
 
 def is_root():
